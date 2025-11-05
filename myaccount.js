@@ -290,3 +290,223 @@ if (logoutBtn) {
     }
   });
 }
+
+
+// not sureeee
+
+// ...existing code...
+
+/* Populate #userId and profileCard data-id from Supabase auth or from a global if available.
+   This makes the delete handler able to find the id synchronously. */
+(function populateUserIdField(){
+  async function getSupabaseUserId(supabase) {
+    if (!supabase) return null;
+    try {
+      if (typeof supabase.auth?.getUser === 'function') {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user?.id) return data.user.id;
+      }
+      if (typeof supabase.auth?.getSession === 'function') {
+        const { data, error } = await supabase.auth.getSession();
+        if (!error && data?.session?.user?.id) return data.session.user.id;
+      }
+    } catch (e) {
+      console.warn('getSupabaseUserId error', e);
+    }
+    return null;
+  }
+
+  async function init() {
+    const input = document.getElementById('userId');
+    const card = document.getElementById('profileCard');
+    const existing = input?.value || card?.getAttribute('data-id') || window.currentUserId || window.userId || null;
+    if (existing) {
+      if (input) input.value = existing;
+      if (card) card.setAttribute('data-id', existing);
+      console.log('[init] userId set from existing value:', existing);
+      return;
+    }
+
+    const supabase = window.supabase || window.supabaseClient || null;
+    if (!supabase) {
+      console.log('[init] no supabase client found to resolve user id');
+      return;
+    }
+
+    const uid = await getSupabaseUserId(supabase);
+    if (uid) {
+      if (input) input.value = uid;
+      if (card) card.setAttribute('data-id', uid);
+      console.log('[init] userId populated from supabase:', uid);
+    } else {
+      console.log('[init] supabase client present but no auth user found');
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* Improved delete-profile handler with robust Supabase auth checks */
+(function(){
+  function findUserId() {
+    const card = document.getElementById('profileCard') || document.querySelector('.profile-card');
+    if (card && card.dataset && card.dataset.id) {
+      console.log('[delete] userId from data-id:', card.dataset.id);
+      return card.dataset.id;
+    }
+    const hidden = document.getElementById('userId') || document.querySelector('input[name="userId"]') || document.querySelector('[data-user-id]');
+    if (hidden) {
+      const v = hidden.value || hidden.getAttribute('value') || hidden.getAttribute('data-user-id');
+      if (v) { console.log('[delete] userId from hidden field:', v); return v; }
+    }
+    if (window.currentUserId) { console.log('[delete] userId from window.currentUserId:', window.currentUserId); return window.currentUserId; }
+    if (window.userId) { console.log('[delete] userId from window.userId:', window.userId); return window.userId; }
+    if (window.CURRENT_USER && window.CURRENT_USER.id) { console.log('[delete] userId from window.CURRENT_USER.id:', window.CURRENT_USER.id); return window.CURRENT_USER.id; }
+    console.log('[delete] no DOM user id found; will attempt supabase auth if available');
+    return null;
+  }
+
+  async function getAuthUserId(supabase) {
+    if (!supabase || !supabase.auth) return null;
+    try {
+      if (typeof supabase.auth.getUser === 'function') {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user?.id) { console.log('[delete] supabase.auth.getUser ->', data.user.id); return data.user.id; }
+      }
+      if (typeof supabase.auth.getSession === 'function') {
+        const { data, error } = await supabase.auth.getSession();
+        if (!error && data?.session?.user?.id) { console.log('[delete] supabase.auth.getSession ->', data.session.user.id); return data.session.user.id; }
+      }
+      if (typeof supabase.auth.session === 'function') {
+        const s = supabase.auth.session();
+        if (s?.user?.id) { console.log('[delete] supabase.auth.session ->', s.user.id); return s.user.id; }
+      }
+    } catch (err) {
+      console.error('[delete] getAuthUserId error', err);
+    }
+    return null;
+  }
+
+  async function tryDeleteOnTable(supabase, table, userId) {
+    try {
+      let { data, error } = await supabase.from(table).delete().eq('id', userId);
+      if (!error) return { ok: true, table, method: 'id', data };
+      ({ data, error } = await supabase.from(table).delete().eq('user_id', userId));
+      if (!error) return { ok: true, table, method: 'user_id', data };
+      return { ok: false, table, error };
+    } catch (err) {
+      return { ok: false, table, error: err };
+    }
+  }
+
+  async function deleteProfileFromDb(supabase, userId) {
+    if (!supabase) return { ok: false, reason: 'no-supabase-client' };
+    const tables = ['profiles','profile','users','user_profiles']; // adjust to your schema
+    for (const t of tables) {
+      const res = await tryDeleteOnTable(supabase, t, userId);
+      console.log('[delete] attempt', t, res);
+      if (res.ok) return { ok: true, table: t, method: res.method };
+    }
+    return { ok: false, reason: 'no-table-matched' };
+  }
+
+  async function onDeleteClick(e) {
+    e.preventDefault();
+    const name = document.getElementById('username')?.textContent || 'this profile';
+    if (!confirm(`Are you sure you want to permanently delete ${name}? This action cannot be undone.`)) return;
+
+    const domId = findUserId();
+    const supabase = window.supabase || window.supabaseClient || null;
+    let userId = domId || null;
+
+    if (supabase && !userId) {
+      userId = await getAuthUserId(supabase);
+    }
+
+    if (!supabase) {
+      console.warn('[delete] Supabase client not found on window (window.supabase). Falling back to UI-only removal.');
+      document.querySelector('.profile-card')?.remove();
+      alert('Profile removed from UI (no DB deletion).');
+      window.location.href = 'rizzalian.html';
+      return;
+    }
+
+    if (!userId) {
+      console.error('[delete] User id not found to delete. Add data-id to the profile card or ensure Supabase auth session exists.');
+      alert('Could not determine user id to delete. Open console for details.');
+      console.log('Add one of these to myaccount.html:');
+      console.log('<section class="profile-card" id="profileCard" data-id="USER_ID_HERE">');
+      console.log('<input type="hidden" id="userId" value="USER_ID_HERE">');
+      return;
+    }
+
+    try {
+      const result = await deleteProfileFromDb(supabase, userId);
+      if (result.ok) {
+        try { await supabase.auth.signOut(); } catch(_) {}
+        alert('Profile deleted.');
+        window.location.href = 'rizzalian.html';
+        return;
+      } else {
+        console.warn('[delete] delete attempts failed:', result);
+        alert('Delete failed. Check console for details.');
+      }
+    } catch (err) {
+      console.error('[delete] Unhandled delete error', err);
+      alert('An error occurred during deletion. See console.');
+    }
+  }
+
+  function init(){
+    const btn = document.getElementById('deleteProfileBtn');
+    if (!btn) { console.warn('[delete] deleteProfileBtn not found'); return; }
+    btn.removeEventListener('click', onDeleteClick);
+    btn.addEventListener('click', onDeleteClick);
+    console.log('[delete] deleteProfile handler attached');
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* Optional debug probe: logs and attempts to populate id from Supabase (helps diagnose failures) */
+(function debugPopulateUserId(){
+  async function probe() {
+    console.log('[debug] window.supabase present?', !!(window.supabase || window.supabaseClient));
+    console.log('[debug] #userId value:', document.getElementById('userId')?.value);
+    console.log('[debug] profileCard dataset.id:', document.getElementById('profileCard')?.dataset.id);
+
+    const supabase = window.supabase || window.supabaseClient || null;
+    if (!supabase) {
+      console.warn('[debug] supabase client not found on window. Ensure initialization script runs before myaccount.js.');
+      return;
+    }
+
+    try {
+      if (typeof supabase.auth?.getUser === 'function') {
+        const { data, error } = await supabase.auth.getUser();
+        console.log('[debug] supabase.auth.getUser ->', { data, error });
+        if (data?.user?.id) {
+          document.getElementById('userId').value = data.user.id;
+          document.getElementById('profileCard')?.setAttribute('data-id', data.user.id);
+          console.log('[debug] populated user id from supabase.auth.getUser:', data.user.id);
+          return;
+        }
+      }
+      if (typeof supabase.auth?.getSession === 'function') {
+        const { data, error } = await supabase.auth.getSession();
+        console.log('[debug] supabase.auth.getSession ->', { data, error });
+        if (data?.session?.user?.id) {
+          document.getElementById('userId').value = data.session.user.id;
+          document.getElementById('profileCard')?.setAttribute('data-id', data.session.user.id);
+          console.log('[debug] populated user id from supabase.auth.getSession:', data.session.user.id);
+          return;
+        }
+      }
+      console.warn('[debug] supabase present but no authenticated user found (session/user is null).');
+    } catch (err) {
+      console.error('[debug] error probing supabase auth', err);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', probe); else probe();
+})();
