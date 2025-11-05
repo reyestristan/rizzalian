@@ -1,0 +1,582 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  
+}
+
+body {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: url('background.png');
+  background-size: cover;
+  background-position: center;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }  
+  
+  .logo {
+    width: 100px; 
+    height: 100px;
+    background-image: url('logo.png');
+    background-size: contain; 
+    background-repeat: no-repeat;
+    background-position: center;
+  } 
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 40px;
+  background: transparent;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+
+.nav-buttons button {
+  margin-left: 12px;
+  padding: 8px 16px;
+  border: none;
+  background: #facc15;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #333;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  transition: 0.3s;
+}
+
+.nav-buttons button:hover {
+  background: #fff;
+}
+
+.feed {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 30px;
+  padding: 40px;
+  position: relative;
+  scroll-behavior: smooth;
+  transition: transform 0.5s ease;
+}
+
+.profile-card {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+  width: 260px;
+  min-width: 260px;
+  padding: 20px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.profile-card:hover {
+  transform: translateY(-5px);
+}
+
+.profile-pic {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border-radius: 15px;
+}
+
+.name {
+  margin: 10px 0 5px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.bio {
+  color: #f3f3f3;
+  font-size: 14px;
+}
+
+/* Navigation Arrows */
+.nav-arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(250, 204, 21, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+  transition: 0.3s;
+  z-index: 50;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.nav-arrow:hover {
+  background: #fff;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.nav-arrow.left {
+  left: 20px;
+}
+
+.nav-arrow.right {
+  right: 20px;
+}
+
+.nav-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Modal Overlay */
+.user-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.user-panel.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.panel-container {
+  position: relative;
+  background: #ffffff;
+  backdrop-filter: none;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: none;
+  width: 90%;
+  max-width: 900px;
+  height: 80vh;
+  max-height: 600px;
+  overflow-y: auto;
+  color: #333;
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === Scrollbar styling with 15px width and rounded edges === */
+.panel-container::-webkit-scrollbar {
+  width: 15px;
+}
+
+.panel-container::-webkit-scrollbar-track {
+  background: #ffffff;
+  border-radius: 15px;
+}
+
+.panel-container::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 15px; /* Rounded corners */
+}
+
+.panel-container::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.user-panel.active .panel-container {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.panel-header {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+}
+
+.close-btn {
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  color: #333;
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.3s;
+  font-weight: bold;
+}
+
+.close-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(1.1);
+}
+
+.user-main {
+  text-align: center;
+  padding: 30px 20px 15px;
+}
+
+.profile-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 10px;
+}
+
+.main-photo {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #facc15;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.like-btn {
+  background: #facc15;
+  color: #333;
+}
+
+.like-btn:hover {
+  background: #fbbf24;
+  transform: scale(1.05);
+}
+
+.dislike-btn {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.dislike-btn:hover {
+  background: #2563eb;
+  transform: scale(1.05);
+}
+
+.match-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: default;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.match-btn.match {
+  background: #22c55e;
+  color: #fff;
+}
+
+.match-btn.no-match {
+  background: #ef4444;
+  color: #fff;
+}
+
+.user-main h2 {
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+/* User Details */
+.user-details {
+  background: transparent;
+  border-radius: 10px;
+  padding: 5px 20px;
+  margin: 10px 20px;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row {
+  display: flex;
+  background: #3b82f6;
+  border-radius: 25px;
+  padding: 12px 20px;
+  border: none;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.detail-value {
+  color: #fff;
+  font-size: 14px;
+  flex: 1;
+}
+
+/* Looking For Section */
+.looking-for-section {
+  margin: 10px 20px;
+}
+
+.looking-for-text {
+  background: #3b82f6;
+  border-radius: 20px;
+  padding: 15px 20px;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.6;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Gallery */
+.section-title {
+  margin: 15px 0 8px 20px;
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 5px 20px 20px;
+}
+
+.gallery img {
+  width: 100%;
+  height: 100px;
+  border-radius: 10px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.gallery img:hover {
+  transform: scale(1.05);
+}
+
+/* === FOOTER NAVIGATION BAR === */
+.footer-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: url('background.png');
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 0;
+  z-index: 1000;
+}
+
+.footer-nav .nav-btn {
+  background-color: #0a1e66;
+  border: 3px solid #facc15;
+  border-radius: 50%;
+  width: 55px;
+  height: 55px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.footer-nav .nav-btn:hover {
+  background-color: #facc15;
+  transform: scale(1.1);
+}
+
+.footer-nav .nav-btn img {
+  width: 28px;
+  height: 28px;
+  /*filter: invert(12%) sepia(60%) saturate(450%) hue-rotate(200deg);*/
+}
+
+.footer-nav .nav-btn:hover img {
+  filter: invert(0%) brightness(0%);
+} 
+
+/* === Search bar styles (added) === */
+.visually-hidden {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 720px;
+  margin: 0 16px;
+  position: relative;
+}
+
+/* Center the search bar horizontally in the navbar */
+.navbar { /* keep existing properties, ensure containing block exists */ }
+.search-bar {
+  position: absolute;
+  left: 50%;
+  top: 9%;
+  transform: translate(-50%, -50%);
+  width: min(720px, 60%);
+}
+
+/* inputs and controls */
+.search-bar input[type="search"] {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+  outline: none;
+  transition: box-shadow 0.15s ease, transform 0.12s ease;
+  font-size: 14px;
+}
+
+.search-bar input[type="search"]:focus {
+  box-shadow: 0 4px 18px rgba(250,204,21,0.12);
+  transform: translateY(-1px);
+  border-color: rgba(250,204,21,0.95);
+  background: rgba(255,255,255,0.06);
+}
+
+.search-bar button#clearSearch {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  font-size: 14px;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.search-bar button#clearSearch:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: rgba(10,14,30,0.95);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+  z-index: 120;
+  color: #fff;
+}
+
+.search-results .result-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.search-results .result-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.result-item img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid rgba(250,204,21,0.15);
+}
+
+.result-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.result-meta .name {
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+}
+
+.result-meta .sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+}
+
+/* Fix: ensure search input is on top and accepts clicks/focus */
+.search-bar {
+  z-index: 1100 !important;
+  pointer-events: auto !important;
+}
+
+.search-bar input[type="search"],
+.search-bar button#clearSearch {
+  position: relative !important;
+  z-index: 1101 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure logo and nav-buttons don't sit above the search */
+.logo, .logo-container, .nav-buttons {
+  position: relative !important;
+  z-index: 100 !important;
+}
