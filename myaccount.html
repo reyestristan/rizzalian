@@ -10,13 +10,14 @@
   <nav class="navbar">
     <div class="logo"></div>
     <div class="nav-buttons">
-    <button onclick="window.location.href='rizzalian.html'"> Logout</button>
+      <button onclick="window.location.href='rizzalian.html'"> Logout</button>
     </div>
   </nav>
 
   <main class="profile-container">
     <!-- Profile Card -->
-    <section class="profile-card">
+    <!-- ADDED id and data-id (data-id will be populated by JS) -->
+    <section class="profile-card" id="profileCard" data-id="">
       <div class="profile-pic-container">
         <img src="" alt="Profile" id="profilePic">
         <label for="uploadProfilePic" class="pic-edit"> + </label>
@@ -26,8 +27,14 @@
         <h2 id="username">Loading...</h2>
         <p id="bio">Loading bio...</p>
         <p id="extraDetails"></p>
-        <button id="editProfileBtn">Edit Profile</button>
-        <button id="deleteProfileBtn">Delete Profile</button>
+
+        <!-- Hidden input so delete logic can read user id synchronously -->
+        <input type="hidden" id="userId" value="">
+
+        <div class="profile-actions">
+          <button id="editProfileBtn">Edit Profile</button>
+          <button id="deleteProfileBtn">Delete Profile</button>
+        </div>
       </div>
     </section>
 
@@ -60,7 +67,6 @@
     </div>
   </main>
 
-  <!-- ✅ Footer Navigation (added) -->
   <footer class="footer-nav">
     <button class="nav-btn" onclick="window.location.href='home.html'">
       <img src="home.png" alt="Home">
