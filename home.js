@@ -992,3 +992,209 @@ loadProfiles();
 
 // Update daily active users count on page load
 updateWarehouseTables('page_load');
+
+//not sure kung dito
+// ...existing code...
+/* Robust filter button/dropdown initialization — ensures handlers attach after DOM ready */
+(function initFilterControls(){
+  function setup(){
+    const openBtn = document.getElementById('openFilterBtn');
+    const dropdown = document.getElementById('filterDropdown');
+    const filterForm = document.getElementById('filterForm');
+    const clearBtn = document.getElementById('clearFilter');
+
+    if (!openBtn) {
+      console.warn('initFilterControls: openFilterBtn not found');
+      return;
+    }
+
+    // Ensure ARIA defaults
+    openBtn.setAttribute('aria-haspopup','true');
+    openBtn.setAttribute('aria-expanded', 'false');
+    if (dropdown) dropdown.setAttribute('aria-hidden', 'true');
+
+    // Toggle dropdown on button click
+    openBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!dropdown) return;
+      const willShow = !!dropdown.hidden;
+      dropdown.hidden = !willShow ? true : false; // keep explicit boolean
+      dropdown.setAttribute('aria-hidden', String(dropdown.hidden));
+      openBtn.setAttribute('aria-expanded', String(!dropdown.hidden));
+      if (!dropdown.hidden) {
+        const first = dropdown.querySelector('input, button, select, textarea');
+        if (first) first.focus();
+      }
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', function (e) {
+      if (!dropdown || dropdown.hidden) return;
+      const wrapper = dropdown.closest('.filter-wrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        dropdown.hidden = true;
+        dropdown.setAttribute('aria-hidden','true');
+        openBtn.setAttribute('aria-expanded','false');
+      }
+    });
+
+    // ESC closes dropdown
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && dropdown && !dropdown.hidden) {
+        dropdown.hidden = true;
+        dropdown.setAttribute('aria-hidden','true');
+        openBtn.setAttribute('aria-expanded','false');
+      }
+    });
+
+    // Ensure Apply triggers applyFilter()
+    if (filterForm) {
+      filterForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (typeof window.applyFilter === 'function') {
+          try { window.applyFilter(); } catch(err) { console.error('applyFilter error', err); }
+        } else {
+          console.warn('applyFilter() not defined on window');
+        }
+      });
+    }
+
+    // Clear button behavior
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        if (filterForm) filterForm.reset();
+        if (typeof window.applyFilter === 'function') {
+          try { window.applyFilter(); } catch (err) { console.error('applyFilter error', err); }
+        }
+        if (dropdown) {
+          dropdown.hidden = true;
+          dropdown.setAttribute('aria-hidden','true');
+        }
+        openBtn.setAttribute('aria-expanded','false');
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+})();
+
+// ...existing code...
+(function ensureApplyWorks(){
+  function init(){
+    const filterForm = document.getElementById('filterForm');
+    const applyBtn = document.querySelector('.apply-btn') || (filterForm && filterForm.querySelector('button[type="submit"]'));
+    if (filterForm) {
+      filterForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        handleApply();
+      });
+    }
+    if (applyBtn) {
+      applyBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        handleApply();
+      });
+    } else {
+      console.warn('[filter] apply button not found');
+    }
+  }
+
+  function handleApply(){
+    console.log('[filter] apply clicked');
+    if (typeof window.applyFilter === 'function') {
+      try {
+        window.applyFilter();
+        console.log('[filter] applyFilter() invoked');
+        return;
+      } catch(err){
+        console.error('[filter] applyFilter() error', err);
+      }
+    }
+
+    // Fallback: read inputs and dispatch the filter event directly
+    const id = document.getElementById('filterId')?.value.trim() || '';
+    const lastName = (document.getElementById('filterLastName')?.value.trim() || '').toLowerCase();
+    const program = (document.getElementById('filterProgram')?.value.trim() || '').toLowerCase();
+    const metaRaw = (document.getElementById('filterMeta')?.value.trim() || '').toLowerCase();
+    const metaTags = metaRaw ? metaRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+    const detail = { id, lastName, program, metaTags };
+    console.log('[filter] dispatching userFilterChanged', detail);
+    window.dispatchEvent(new CustomEvent('userFilterChanged', { detail }));
+
+    // close dropdown if present
+    const dropdown = document.getElementById('filterDropdown');
+    const openBtn = document.getElementById('openFilterBtn');
+    if (dropdown) { dropdown.hidden = true; dropdown.setAttribute('aria-hidden','true'); }
+    if (openBtn) openBtn.setAttribute('aria-expanded','false');
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+// ...existing code...
+// Filter rendered profile cards in #feed when userFilterChanged is dispatched
+(function(){
+  window.addEventListener('userFilterChanged', function(e){
+    console.log('[filter] userFilterChanged', e && e.detail ? e.detail : {});
+    const detail = e.detail || {};
+    const idFilter = (detail.id || '').toString().trim().toLowerCase();
+    const lastNameFilter = (detail.lastName || '').toString().trim().toLowerCase();
+    const programFilter = (detail.program || '').toString().trim().toLowerCase();
+    const metaTagsFilter = Array.isArray(detail.metaTags) ? detail.metaTags.map(t=>t.toString().toLowerCase().trim()).filter(Boolean) : [];
+
+    const feed = document.getElementById('feed');
+    if (!feed) { console.warn('[filter] #feed not found'); return; }
+
+    const cards = Array.from(feed.querySelectorAll('.profile-card'));
+    if (!cards.length) { console.warn('[filter] no .profile-card elements found inside #feed'); return; }
+
+    let anyVisible = false;
+    cards.forEach(card => {
+      const dataset = card.dataset || {};
+      const dataId = (dataset.id || card.getAttribute('data-id') || '').toString().toLowerCase();
+      const dataLast = (dataset.lastname || dataset.lastName || '').toString().toLowerCase();
+      const dataProgram = (dataset.program || '').toString().toLowerCase();
+      const dataTags = ((dataset.tags || dataset.metatags || '')).toString().toLowerCase();
+      const combinedText = (card.textContent || '').toString().toLowerCase();
+
+      let visible = true;
+      if (idFilter) {
+        if (!(dataId && dataId === idFilter) && !combinedText.includes(idFilter)) visible = false;
+      }
+      if (lastNameFilter && visible) {
+        if (!((dataLast && dataLast.includes(lastNameFilter)) || combinedText.includes(lastNameFilter))) visible = false;
+      }
+      if (programFilter && visible) {
+        if (!((dataProgram && dataProgram.includes(programFilter)) || combinedText.includes(programFilter))) visible = false;
+      }
+      if (metaTagsFilter.length && visible) {
+        for (const t of metaTagsFilter) {
+          if (!( (dataTags && dataTags.split(',').map(s=>s.trim()).includes(t)) || combinedText.includes(t) )) { visible = false; break; }
+        }
+      }
+
+      card.style.display = visible ? '' : 'none';
+      if (visible) anyVisible = true;
+    });
+
+    // optional: show a small "no results" message if nothing matched
+    let noMsg = document.getElementById('filterNoResults');
+    if (!anyVisible) {
+      if (!noMsg) {
+        noMsg = document.createElement('div');
+        noMsg.id = 'filterNoResults';
+        noMsg.style.color = '#fff';
+        noMsg.style.padding = '18px';
+        noMsg.textContent = 'No users match the filter.';
+        feed.insertBefore(noMsg, feed.firstChild);
+      }
+    } else {
+      if (noMsg) noMsg.remove();
+    }
+  });
+})();
