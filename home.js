@@ -55,6 +55,8 @@ async function loadProfiles() {
     .select(`*, users!inner(id, username)`)
     .neq('user_id', currentUserId);
 
+  console.log("Profiles loaded:", data); // ✅ Debugging line
+
   if (error) {
     console.error("Error loading profiles:", error);
     feed.innerHTML = "<p style='color:white;text-align:center;'>Error loading profiles.</p>";
@@ -80,7 +82,7 @@ function renderProfiles() {
     const card = document.createElement("div");
     card.className = "profile-card";
     card.dataset.id = user.user_id || "";
-    card.dataset.lastname = user.last_name || "";
+    card.dataset.name = user.name || "";
     card.dataset.program = user.graduated_course || "";
     card.dataset.tags = user.hobbies || "";
 
@@ -145,7 +147,7 @@ document.addEventListener("click", e => {
 
 clearFilter.addEventListener("click", () => {
   filterForm.reset();
-  filteredUsers = users;
+  filteredUsers = [...users];
   renderProfiles();
   filterDropdown.hidden = true;
   openFilterBtn.setAttribute("aria-expanded", "false");
@@ -156,32 +158,40 @@ filterForm.addEventListener("submit", e => {
   applyFilter();
 });
 
+// ✅ FIXED APPLY FILTER FUNCTION (matches your real fields)
 function applyFilter() {
   const id = document.getElementById("filterId").value.trim().toLowerCase();
-  const lastName = document.getElementById("filterLastName").value.trim().toLowerCase();
+  const name = document.getElementById("filterLastName").value.trim().toLowerCase(); // uses input for 'Last name'
   const program = document.getElementById("filterProgram").value.trim().toLowerCase();
   const metaRaw = document.getElementById("filterMeta").value.trim().toLowerCase();
-  const metaTags = metaRaw ? metaRaw.split(",").map(t => t.trim()) : [];
+  const metaTags = metaRaw ? metaRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+  if (!id && !name && !program && metaTags.length === 0) {
+    filteredUsers = [...users];
+    renderProfiles();
+    filterDropdown.hidden = true;
+    openFilterBtn.setAttribute("aria-expanded", "false");
+    return;
+  }
 
   filteredUsers = users.filter(u => {
     const uid = (u.user_id || "").toString().toLowerCase();
-    const lname = (u.last_name || "").toLowerCase();
+    const uname = (u.name || "").toLowerCase();
     const prog = (u.graduated_course || "").toLowerCase();
     const hobbies = (u.hobbies || "").toLowerCase();
 
     let match = true;
+
     if (id && !uid.includes(id)) match = false;
-    if (lastName && !lname.includes(lastName)) match = false;
+    if (name && !uname.includes(name)) match = false;
     if (program && !prog.includes(program)) match = false;
+
     if (metaTags.length) {
-      const userTags = hobbies.split(",").map(t => t.trim());
-      for (const tag of metaTags) {
-        if (!userTags.includes(tag)) {
-          match = false;
-          break;
-        }
-      }
+      const userTags = hobbies.split(",").map(tag => tag.trim()).filter(Boolean);
+      const hasAllTags = metaTags.every(tag => userTags.includes(tag));
+      if (!hasAllTags) match = false;
     }
+
     return match;
   });
 
